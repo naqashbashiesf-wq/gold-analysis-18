@@ -1,1 +1,615 @@
 # gold-analysis-18
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>گلدیار - سامانه هوشمند تحلیل بازار طلا</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Vazirmatn', sans-serif; 
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
+        }
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // آیکون‌ها
+        const MenuIcon = () => (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        );
+
+        const UserIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+        );
+
+        const BellIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+        );
+
+        const RefreshIcon = ({className}) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        );
+
+        const TrendingUpIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+        );
+
+        const TrendingDownIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+            </svg>
+        );
+
+        const ChartIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+        );
+
+        const GoldPriceTracker = () => {
+            const [showLogin, setShowLogin] = useState(false);
+            const [showRegister, setShowRegister] = useState(false);
+            const [goldPrice, setGoldPrice] = useState(2687.35);
+            const [silverPrice, setSilverPrice] = useState(31.42);
+            const [usdRate, setUsdRate] = useState(107820);
+            const [mesghalMarket, setMesghalMarket] = useState(48250000);
+            const [geram18Market, setGeram18Market] = useState(3520000);
+            const [dirhamRate, setDirhamRate] = useState(29345);
+            const [uaeGoldPrice, setUaeGoldPrice] = useState(243.5);
+            const [lastUpdate, setLastUpdate] = useState(new Date());
+            const [isLoading, setIsLoading] = useState(false);
+
+            const MESGHAL_DIVIDER = 9.5742;
+            const GRAM_PER_OUNCE = 31.1;
+
+            // محاسبات
+            const mesghalTheo = (goldPrice * usdRate) / MESGHAL_DIVIDER;
+            const diffMesghal = mesghalTheo - mesghalMarket;
+            const mesghalPercent = ((diffMesghal / mesghalMarket) * 100).toFixed(2);
+            
+            const geram18Theo = ((goldPrice / GRAM_PER_OUNCE) * usdRate) * 0.75;
+            const diffGeram18 = geram18Theo - geram18Market;
+            const geram18Percent = ((diffGeram18 / geram18Market) * 100).toFixed(2);
+            
+            const realValueDirham = dirhamRate * uaeGoldPrice;
+            const diffDirham = realValueDirham - geram18Market;
+            const dirhamPercent = ((diffDirham / geram18Market) * 100).toFixed(2);
+            
+            const gsRatio = goldPrice / silverPrice;
+
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setGoldPrice(prev => prev + (Math.random() - 0.5) * 2);
+                    setSilverPrice(prev => prev + (Math.random() - 0.5) * 0.1);
+                    setUsdRate(prev => prev + (Math.random() - 0.5) * 100);
+                    setMesghalMarket(prev => prev + (Math.random() - 0.5) * 50000);
+                    setGeram18Market(prev => prev + (Math.random() - 0.5) * 10000);
+                    setLastUpdate(new Date());
+                }, 5000);
+                return () => clearInterval(interval);
+            }, []);
+
+            const formatNumber = (num) => {
+                return new Intl.NumberFormat('fa-IR').format(Math.round(num));
+            };
+
+            const handleRefresh = () => {
+                setIsLoading(true);
+                setTimeout(() => {
+                    setGoldPrice(prev => prev + (Math.random() - 0.5) * 5);
+                    setSilverPrice(prev => prev + (Math.random() - 0.5) * 0.2);
+                    setLastUpdate(new Date());
+                    setIsLoading(false);
+                }, 800);
+            };
+
+            const getSignalColor = (diff) => {
+                if (diff > 0) return "text-green-600";
+                if (diff < 0) return "text-red-600";
+                return "text-gray-600";
+            };
+
+            const getSignalBg = (diff) => {
+                if (diff > 0) return "bg-green-50 border-green-200";
+                if (diff < 0) return "bg-red-50 border-red-200";
+                return "bg-gray-50 border-gray-200";
+            };
+
+            const LoginModal = () => (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm" onClick={() => setShowLogin(false)}>
+                    <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl transform transition-all" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="text-3xl font-bold text-gray-800 mb-2 text-center">ورود به گلدیار</h2>
+                        <p className="text-gray-500 text-center mb-6">به پنل تحلیل حرفه‌ای خوش آمدید</p>
+                        
+                        <div className="space-y-4">
+                            <input type="tel" placeholder="شماره موبایل" className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-yellow-500 outline-none transition-all" />
+                            <input type="password" placeholder="رمز عبور" className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-yellow-500 outline-none transition-all" />
+                            <button className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-3 rounded-xl font-bold hover:shadow-lg transition-all">
+                                ورود
+                            </button>
+                        </div>
+
+                        <div className="mt-6 text-center">
+                            <button onClick={() => {setShowLogin(false); setShowRegister(true);}} className="text-yellow-600 text-sm hover:underline">
+                                حساب کاربری ندارید؟ ثبت‌نام کنید
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const RegisterModal = () => (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm" onClick={() => setShowRegister(false)}>
+                    <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl transform transition-all" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="text-3xl font-bold text-gray-800 mb-2 text-center">ثبت‌نام در گلدیار</h2>
+                        <p className="text-gray-500 text-center mb-6">۷ روز رایگان تحلیل حرفه‌ای</p>
+                        
+                        <div className="space-y-4">
+                            <input type="text" placeholder="نام و نام خانوادگی" className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-yellow-500 outline-none transition-all" />
+                            <input type="tel" placeholder="شماره موبایل" className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-yellow-500 outline-none transition-all" />
+                            <input type="password" placeholder="رمز عبور" className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-yellow-500 outline-none transition-all" />
+                            <button className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-3 rounded-xl font-bold hover:shadow-lg transition-all">
+                                ثبت‌نام رایگان
+                            </button>
+                        </div>
+
+                        <div className="mt-6 text-center">
+                            <button onClick={() => {setShowRegister(false); setShowLogin(true);}} className="text-yellow-600 text-sm hover:underline">
+                                قبلاً ثبت‌نام کرده‌اید؟ ورود
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen pb-20">
+                    {showLogin && <LoginModal />}
+                    {showRegister && <RegisterModal />}
+
+                    {/* Header */}
+                    <div className="sticky top-0 z-40 bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-600 shadow-xl">
+                        <div className="max-w-7xl mx-auto px-4 py-4">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg">
+                                        <span className="text-2xl">💰</span>
+                                    </div>
+                                    <div>
+                                        <h1 className="text-xl font-bold text-white">گلدیار</h1>
+                                        <p className="text-xs text-yellow-100">سامانه هوشمند تحلیل</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                    <button className="p-2 bg-white bg-opacity-20 rounded-xl text-white hover:bg-opacity-30 transition-all">
+                                        <BellIcon />
+                                    </button>
+                                    <button onClick={() => setShowLogin(true)} className="px-4 py-2 bg-white text-yellow-600 rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center gap-2">
+                                        <UserIcon />
+                                        <span>ورود</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+                        {/* Live Prices Bar */}
+                        <div className="glass-effect rounded-2xl p-4 shadow-xl">
+                            <div className="flex justify-between items-center mb-3">
+                                <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                    <span className="pulse-animation inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                                    قیمت‌های لحظه‌ای
+                                </h3>
+                                <button onClick={handleRefresh} disabled={isLoading} className="p-2 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-all disabled:opacity-50">
+                                    <RefreshIcon className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-white bg-opacity-60 rounded-xl p-3 border-r-4 border-yellow-600">
+                                    <span className="text-xs text-gray-600 block mb-1">انس طلا</span>
+                                    <div className="text-lg font-bold text-gray-800">${goldPrice.toFixed(2)}</div>
+                                    <span className="text-xs text-green-600">+0.5%</span>
+                                </div>
+                                
+                                <div className="bg-white bg-opacity-60 rounded-xl p-3 border-r-4 border-gray-400">
+                                    <span className="text-xs text-gray-600 block mb-1">انس نقره</span>
+                                    <div className="text-lg font-bold text-gray-800">${silverPrice.toFixed(2)}</div>
+                                    <span className="text-xs text-red-600">-0.2%</span>
+                                </div>
+
+                                <div className="bg-white bg-opacity-60 rounded-xl p-3 border-r-4 border-green-600">
+                                    <span className="text-xs text-gray-600 block mb-1">دلار</span>
+                                    <div className="text-lg font-bold text-gray-800">{formatNumber(usdRate)}</div>
+                                    <span className="text-xs text-gray-500">تومان</span>
+                                </div>
+
+                                <div className="bg-white bg-opacity-60 rounded-xl p-3 border-r-4 border-blue-600">
+                                    <span className="text-xs text-gray-600 block mb-1">درهم</span>
+                                    <div className="text-lg font-bold text-gray-800">{formatNumber(dirhamRate)}</div>
+                                    <span className="text-xs text-gray-500">تومان</span>
+                                </div>
+
+                                <div className="bg-white bg-opacity-60 rounded-xl p-3 border-r-4 border-purple-600">
+                                    <span className="text-xs text-gray-600 block mb-1">مثقال</span>
+                                    <div className="text-lg font-bold text-gray-800">{formatNumber(mesghalMarket)}</div>
+                                    <span className="text-xs text-gray-500">تومان</span>
+                                </div>
+
+                                <div className="bg-white bg-opacity-60 rounded-xl p-3 border-r-4 border-orange-600">
+                                    <span className="text-xs text-gray-600 block mb-1">۱۸ عیار</span>
+                                    <div className="text-lg font-bold text-gray-800">{formatNumber(geram18Market)}</div>
+                                    <span className="text-xs text-gray-500">ت/گرم</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 text-center text-xs text-gray-600">
+                                آخرین به‌روزرسانی: {lastUpdate.toLocaleTimeString('fa-IR')}
+                            </div>
+                        </div>
+
+                        {/* Analysis Cards */}
+                        <div className="space-y-4">
+                            {/* تحلیل A (مثقال) */}
+                            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                                <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <ChartIcon />
+                                            <h3 className="font-bold text-white">تحلیل A</h3>
+                                        </div>
+                                        <span className="text-xs bg-white bg-opacity-20 px-3 py-1 rounded-full text-white">استاندارد</span>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-gray-50 rounded-xl p-3">
+                                            <span className="text-xs text-gray-600 block mb-1">قیمت بازار</span>
+                                            <div className="font-bold text-gray-800">{formatNumber(mesghalMarket)}</div>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-xl p-3">
+                                            <span className="text-xs text-gray-600 block mb-1">قیمت تئوری</span>
+                                            <div className="font-bold text-gray-800">{formatNumber(mesghalTheo)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className={`${getSignalBg(diffMesghal)} border-2 rounded-xl p-4`}>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm text-gray-700">اختلاف قیمت</span>
+                                            <div className="flex items-center gap-2">
+                                                {diffMesghal > 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
+                                                <span className={`font-bold ${getSignalColor(diffMesghal)}`}>
+                                                    {mesghalPercent}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className={`text-2xl font-bold ${getSignalColor(diffMesghal)}`}>
+                                            {formatNumber(Math.abs(diffMesghal))} تومان
+                                        </div>
+                                        <div className="mt-2 text-xs text-gray-600">
+                                            {diffMesghal > 100000 ? "⚠️ بازار در حباب مثبت" : 
+                                             diffMesghal < -100000 ? "✅ فرصت خرید مناسب" : 
+                                             "⚪ وضعیت متعادل"}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* تحلیل B (18 عیار) */}
+                            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                                <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <ChartIcon />
+                                            <h3 className="font-bold text-white">تحلیل B</h3>
+                                        </div>
+                                        <span className="text-xs bg-white bg-opacity-20 px-3 py-1 rounded-full text-white">پیشرفته</span>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-gray-50 rounded-xl p-3">
+                                            <span className="text-xs text-gray-600 block mb-1">قیمت بازار</span>
+                                            <div className="font-bold text-gray-800">{formatNumber(geram18Market)}</div>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-xl p-3">
+                                            <span className="text-xs text-gray-600 block mb-1">قیمت تئوری</span>
+                                            <div className="font-bold text-gray-800">{formatNumber(geram18Theo)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className={`${getSignalBg(diffGeram18)} border-2 rounded-xl p-4`}>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm text-gray-700">اختلاف قیمت</span>
+                                            <div className="flex items-center gap-2">
+                                                {diffGeram18 > 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
+                                                <span className={`font-bold ${getSignalColor(diffGeram18)}`}>
+                                                    {geram18Percent}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className={`text-2xl font-bold ${getSignalColor(diffGeram18)}`}>
+                                            {formatNumber(Math.abs(diffGeram18))} تومان
+                                        </div>
+                                        <div className="mt-2 text-xs text-gray-600">
+                                            {diffGeram18 > 50000 ? "⚠️ بازار گران است" : 
+                                             diffGeram18 < -50000 ? "✅ قیمت مناسب برای خرید" : 
+                                             "⚪ قیمت در محدوده عادی"}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* تحلیل C (درهم) */}
+                            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                                <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <ChartIcon />
+                                            <h3 className="font-bold text-white">تحلیل C</h3>
+                                        </div>
+                                        <span className="text-xs bg-white bg-opacity-20 px-3 py-1 rounded-full text-white">بین‌المللی</span>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-gray-50 rounded-xl p-3">
+                                            <span className="text-xs text-gray-600 block mb-1">قیمت امارات</span>
+                                            <div className="font-bold text-gray-800">{uaeGoldPrice.toFixed(1)} درهم</div>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-xl p-3">
+                                            <span className="text-xs text-gray-600 block mb-1">معادل تومان</span>
+                                            <div className="font-bold text-gray-800">{formatNumber(realValueDirham)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className={`${getSignalBg(diffDirham)} border-2 rounded-xl p-4`}>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm text-gray-700">اختلاف با ایران</span>
+                                            <div className="flex items-center gap-2">
+                                                {diffDirham > 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
+                                                <span className={`font-bold ${getSignalColor(diffDirham)}`}>
+                                                    {dirhamPercent}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className={`text-2xl font-bold ${getSignalColor(diffDirham)}`}>
+                                            {formatNumber(Math.abs(diffDirham))} تومان
+                                        </div>
+                                        <div className="mt-2 text-xs text-gray-600">
+                                            {diffDirham > 700000 ? "✅ خرید از ایران مقرون‌به‌صرفه است" : 
+                                             diffDirham < -700000 ? "⚠️ خرید از امارات بهتر است" : 
+                                             "⚪ تفاوت قابل توجهی ندارد"}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* تحلیل D (نسبت) */}
+                            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                                <div className="bg-gradient-to-r from-teal-500 to-teal-600 p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <ChartIcon />
+                                            <h3 className="font-bold text-white">تحلیل D</h3>
+                                        </div>
+                                        <span className="text-xs bg-white bg-opacity-20 px-3 py-1 rounded-full text-white">نسبت‌ها</span>
+                                    </div>
+                                </div>
+
+                                <div className="p-4">
+                                    <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-4 border-2 border-teal-200">
+                                        <div className="text-center mb-4">
+                                            <span className="text-sm text-gray-600 block mb-2">نسبت طلا به نقره</span>
+                                            <div className="text-5xl font-bold text-teal-600">{gsRatio.toFixed(1)}</div>
+                                            <span className="text-xs text-gray-500">محدوده طبیعی: 65-85</span>
+                                        </div>
+
+                                        <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden mb-3">
+                                            <div 
+                                                className="absolute h-full bg-gradient-to-r from-teal-400 to-teal-600 transition-all duration-500"
+                                                style={{width: `${Math.min((gsRatio / 100) * 100, 100)}%`}}
+                                            ></div>
+                                        </div>
+
+                                        <div className={`text-center p-3 rounded-xl ${
+                                            gsRatio < 65 ? 'bg-green-100 text-green-700' :
+                                            gsRatio > 85 ? 'bg-blue-100 text-blue-700' :
+                                            'bg-gray-100 text-gray-700'
+                                        }`}>
+                                            <span className="font-bold text-sm">
+                                                {gsRatio < 65 ? '🟢 طلا ارزشمند‌تر از حد معمول' :
+                                                 gsRatio > 85 ? '🔵 نقره ارزشمند‌تر - فرصت تبدیل' :
+                                                 '⚪ نسبت در حالت متعادل'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Premium Banner */}
+                        <div className="glass-effect rounded-2xl p-6 shadow-xl border-2 border-yellow-400">
+                            <div className="text-center">
+                                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                    <span className="text-3xl">👑</span>
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800 mb-2">دسترسی نامحدود</h3>
+                                <p className="text-gray-600 text-sm mb-4">با اشتراک ویژه به تحلیل‌های پیشرفته دسترسی پیدا کنید</p>
+                                
+                                <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
+                                    <div className="bg-white bg-opacity-60 rounded-lg p-3">
+                                        <div className="font-bold text-gray-800">✅ هشدار قیمت</div>
+                                        <div className="text-gray-500">SMS و پوش</div>
+                                    </div>
+                                    <div className="bg-white bg-opacity-60 rounded-lg p-3">
+                                        <div className="font-bold text-gray-800">✅ تحلیل تاریخی</div>
+                                        <div className="text-gray-500">تا ۳ سال</div>
+                                    </div>
+                                    <div className="bg-white bg-opacity-60 rounded-lg p-3">
+                                        <div className="font-bold text-gray-800">✅ پیش‌بینی AI</div>
+                                        <div className="text-gray-500">هوش مصنوعی</div>
+                                    </div>
+                                    <div className="bg-white bg-opacity-60 rounded-lg p-3">
+                                        <div className="font-bold text-gray-800">✅ پشتیبانی VIP</div>
+                                        <div className="text-gray-500">۲۴/۷</div>
+                                    </div>
+                                </div>
+
+                                <button onClick={() => setShowRegister(true)} className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-4 rounded-xl font-bold text-lg hover:shadow-2xl transition-all transform hover:scale-105">
+                                    شروع ۷ روز رایگان
+                                </button>
+                                <p className="text-xs text-gray-500 mt-3">بدون نیاز به کارت بانکی</p>
+                            </div>
+                        </div>
+
+                        {/* Features */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
+                                <div className="text-3xl mb-2">📊</div>
+                                <div className="font-bold text-gray-800 text-sm">تحلیل لحظه‌ای</div>
+                                <div className="text-xs text-gray-500 mt-1">۴ فرمول تخصصی</div>
+                            </div>
+                            <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
+                                <div className="text-3xl mb-2">🔔</div>
+                                <div className="font-bold text-gray-800 text-sm">هشدار هوشمند</div>
+                                <div className="text-xs text-gray-500 mt-1">اعلان خودکار</div>
+                            </div>
+                            <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
+                                <div className="text-3xl mb-2">📈</div>
+                                <div className="font-bold text-gray-800 text-sm">نمودار قیمت</div>
+                                <div className="text-xs text-gray-500 mt-1">تحلیل تکنیکال</div>
+                            </div>
+                            <div className="bg-white rounded-2xl p-4 shadow-lg text-center">
+                                <div className="text-3xl mb-2">🤖</div>
+                                <div className="font-bold text-gray-800 text-sm">پیش‌بینی AI</div>
+                                <div className="text-xs text-gray-500 mt-1">هوش مصنوعی</div>
+                            </div>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="glass-effect rounded-2xl p-6 shadow-xl">
+                            <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">آمار پلتفرم</h3>
+                            <div className="grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                    <div className="text-3xl font-bold text-yellow-600">۱۲,۴۵۰</div>
+                                    <div className="text-xs text-gray-600 mt-1">کاربر فعال</div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-bold text-green-600">۴.۸</div>
+                                    <div className="text-xs text-gray-600 mt-1">امتیاز کاربران</div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-bold text-blue-600">۲۴/۷</div>
+                                    <div className="text-xs text-gray-600 mt-1">پشتیبانی</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="bg-white rounded-2xl p-6 shadow-lg text-center space-y-3">
+                            <div className="flex justify-center gap-4 text-sm text-gray-600">
+                                <a href="#" className="hover:text-yellow-600">درباره ما</a>
+                                <span>|</span>
+                                <a href="#" className="hover:text-yellow-600">تماس</a>
+                                <span>|</span>
+                                <a href="#" className="hover:text-yellow-600">قوانین</a>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                                © ۱۴۰۳ گلدیار. تمامی حقوق محفوظ است.
+                            </div>
+                            <div className="flex justify-center gap-3">
+                                <a href="#" className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white hover:scale-110 transition-all">
+                                    <span className="text-sm">𝕏</span>
+                                </a>
+                                <a href="#" className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white hover:scale-110 transition-all">
+                                    <span className="text-sm">📷</span>
+                                </a>
+                                <a href="#" className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white hover:scale-110 transition-all">
+                                    <span className="text-sm">✈️</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Bottom Navigation */}
+                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-50">
+                        <div className="max-w-7xl mx-auto px-4 py-3">
+                            <div className="grid grid-cols-4 gap-2">
+                                <button className="flex flex-col items-center gap-1 text-yellow-600">
+                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                                    </svg>
+                                    <span className="text-xs font-bold">خانه</span>
+                                </button>
+                                <button className="flex flex-col items-center gap-1 text-gray-400">
+                                    <ChartIcon />
+                                    <span className="text-xs">نمودارها</span>
+                                </button>
+                                <button className="flex flex-col items-center gap-1 text-gray-400">
+                                    <BellIcon />
+                                    <span className="text-xs">هشدارها</span>
+                                </button>
+                                <button onClick={() => setShowLogin(true)} className="flex flex-col items-center gap-1 text-gray-400">
+                                    <UserIcon />
+                                    <span className="text-xs">پروفایل</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<GoldPriceTracker />, document.getElementById('root'));
+    </script>
+</body>
+</html>
