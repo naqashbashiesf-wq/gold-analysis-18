@@ -106,8 +106,8 @@
             const [usdRate, setUsdRate] = useState(null);
             const [mesghalMarket, setMesghalMarket] = useState(null);
             const [geram18Market, setGeram18Market] = useState(null);
-            const [dirhamRate, setDirhamRate] = useState(29345);
-            const [uaeGoldPrice, setUaeGoldPrice] = useState(243.5);
+            const [dirhamRate, setDirhamRate] = useState(37500);
+            const [uaeGoldPrice, setUaeGoldPrice] = useState(39.6);
             const [lastUpdate, setLastUpdate] = useState(new Date());
             const [isLoading, setIsLoading] = useState(true);
             const [error, setError] = useState(null);
@@ -130,8 +130,8 @@
                     const metalResponse = await fetch('https://api.metals.live/v1/spot');
                     const metalData = await metalResponse.json();
                     
-                    const newGoldPrice = metalData.find(m => m.metal === 'gold')?.price || 2687;
-                    const newSilverPrice = metalData.find(m => m.metal === 'silver')?.price || 31;
+                    const newGoldPrice = metalData.find(m => m.metal === 'gold')?.price || 4311;
+                    const newSilverPrice = metalData.find(m => m.metal === 'silver')?.price || 71;
 
                     // محاسبه درصد تغییر
                     if (goldPrice) {
@@ -150,7 +150,7 @@
                     // در نسخه واقعی باید از backend استفاده کنید
                     
                     // برای الان از محاسبات تئوری استفاده می‌کنیم
-                    const estimatedUSD = 107820 + (Math.random() - 0.5) * 500;
+                    const estimatedUSD = 135600 + (Math.random() - 0.5) * 500;
                     const estimatedMesghal = (newGoldPrice * estimatedUSD) / MESGHAL_DIVIDER;
                     const estimated18Geram = ((newGoldPrice / GRAM_PER_OUNCE) * estimatedUSD) * 0.75;
 
